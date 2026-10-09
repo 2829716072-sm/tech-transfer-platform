@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>成果展示 · 科技成果转化平台</title>
+<meta name="description" content="科技成果与技术需求成果展示平台" />
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<div id="nav"></div>
+
+<header class="page-hero mini">
+  <div class="hero-inner">
+    <span class="badge light">成果展示</span>
+    <h1>科技成果 · 合作机会</h1>
+    <p>浏览已发布的成果供给与技术需求，筛选感兴趣领域的合作机会</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <form class="filter-bar card" id="filterBar">
+    <div class="filter-group">
+      <label>技术领域</label>
+      <select name="techField" id="fTechField">
+        <option value="all">全部领域</option>
+        <option>新一代信息技术</option><option>高端装备</option><option>新材料</option>
+        <option>生物医药</option><option>新能源</option><option>节能环保</option>
+        <option>数字创意</option><option>其他</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>成熟度</label>
+      <select name="maturity" id="fMaturity">
+        <option value="all">全部阶段</option>
+        <option>实验室阶段</option><option>小试阶段</option><option>中试阶段</option><option>产业化阶段</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>类型</label>
+      <select name="projectType" id="fType">
+        <option value="all">供给与需求</option>
+        <option value="supply">成果供给</option>
+        <option value="demand">技术需求</option>
+      </select>
+    </div>
+    <div class="filter-group grow">
+      <label>关键词</label>
+      <input type="search" name="q" id="fQ" placeholder="搜索项目名称、公司、领域" />
+    </div>
+    <button type="button" class="btn-ghost btn-sm" id="resetFilters">重置</button>
+  </form>
+
+  <div class="result-head">
+    <span id="resultCount" class="result-count">加载中…</span>
+  </div>
+
+  <div class="project-grid" id="grid"></div>
+
+  <div class="pagination" id="pager"></div>
+</div>
+
+<div id="footer"></div>
+<script type="module" src="/projects.js"></script>
+</body>
+</html>

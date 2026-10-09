@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>登录 / 注册 · 科技成果转化平台</title>
+<meta name="description" content="科技成果转化平台登录与注册" />
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<div id="nav"></div>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-mode="login">登录</button>
+      <button class="auth-tab" data-mode="register">注册</button>
+    </div>
+
+    <!-- 登录表单 -->
+    <form class="auth-form" id="loginForm" autocomplete="on">
+      <div class="field">
+        <label>手机号</label>
+        <input type="tel" name="phone" id="loginPhone" required maxlength="11" pattern="1[3-9][0-9]{9}" placeholder="请输入注册手机号" autocomplete="tel" />
+      </div>
+      <div class="field">
+        <label>密码</label>
+        <input type="password" name="password" id="loginPassword" required minlength="6" placeholder="至少 6 位" autocomplete="current-password" />
+      </div>
+      <div class="msg" id="loginMsg"></div>
+      <button type="submit" class="btn-primary btn-block" id="loginBtn">登录</button>
+    </form>
+
+    <!-- 注册表单 -->
+    <form class="auth-form" id="registerForm" style="display:none" autocomplete="on">
+      <div class="field">
+        <label>姓名<span class="req">*</span></label>
+        <input type="text" name="name" id="regName" required maxlength="50" placeholder="请输入真实姓名" />
+      </div>
+      <div class="field">
+        <label>手机号<span class="req">*</span></label>
+        <input type="tel" name="phone" id="regPhone" required maxlength="11" pattern="1[3-9][0-9]{9}" placeholder="11 位手机号，用于登录" autocomplete="tel" />
+      </div>
+      <div class="field">
+        <label>密码<span class="req">*</span></label>
+        <input type="password" name="password" id="regPassword" required minlength="6" placeholder="至少 6 位" autocomplete="new-password" />
+      </div>
+      <div class="field">
+        <label>身份<span class="req">*</span></label>
+        <div class="role-pick" id="rolePick">
+          <label class="role-opt"><input type="radio" name="role" value="researcher" /><span class="role-card"><span class="role-name">科研人员</span><span class="role-desc">发布成果、转化技术</span></span></label>
+          <label class="role-opt"><input type="radio" name="role" value="enterprise" /><span class="role-card"><span class="role-name">企业方</span><span class="role-desc">寻求技术、对接需求</span></span></label>
+          <label class="role-opt"><input type="radio" name="role" value="investor" /><span class="role-card"><span class="role-name">投资人</span><span class="role-desc">发掘项目、投资合作</span></span></label>
+        </div>
+      </div>
+      <div class="msg" id="regMsg"></div>
+      <button type="submit" class="btn-primary btn-block" id="registerBtn">注册并登录</button>
+    </form>
+
+    <p class="auth-note">登录后可提交项目、查看联系方式、管理我的成果。</p>
+  </div>
+</div>
+
+<div id="footer"></div>
+<script type="module" src="/auth.js"></script>
+</body>
+</html>

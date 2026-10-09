@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>管理后台 · 科技成果转化平台</title>
+<meta name="robots" content="noindex,nofollow" />
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+<div id="loginView" class="wrap">
+  <div class="login-box">
+    <h2>管理后台登录</h2>
+    <form class="card form-card" id="loginForm">
+      <div class="field">
+        <label>访问密码<span class="req">*</span></label>
+        <input type="password" name="password" id="password" required placeholder="请输入管理密码" autocomplete="current-password" />
+      </div>
+      <div class="msg" id="loginMsg"></div>
+      <button type="submit" class="btn-primary btn-block" id="loginBtn">登录</button>
+    </form>
+  </div>
+</div>
+
+<div id="mainView" class="wrap" style="display:none">
+  <header class="page-head">
+    <span class="badge">管理后台</span>
+    <h1>平台管理</h1>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="review">审核队列 <span class="tab-count" id="pendingCount"></span></button>
+    <button class="tab" data-tab="users">用户管理</button>
+    <button class="tab" data-tab="stats">数据统计</button>
+    <span class="tab-spacer"></span>
+    <a class="btn-ghost btn-sm" id="downloadBtn" href="#">导出 CSV</a>
+    <button class="btn-ghost btn-sm" id="refreshBtn">刷新</button>
+    <button class="btn-ghost btn-sm" id="logoutBtn">退出</button>
+  </div>
+
+  <!-- 审核队列 -->
+  <div id="tab-review" class="tab-panel active">
+    <div class="filter-inline">
+      <select id="reviewFilter">
+        <option value="pending">待审核</option>
+        <option value="published">已发布</option>
+        <option value="rejected">已驳回</option>
+        <option value="all">全部</option>
+      </select>
+      <span class="result-count" id="reviewCount"></span>
+    </div>
+    <div id="reviewList"></div>
+  </div>
+
+  <!-- 用户管理 -->
+  <div id="tab-users" class="tab-panel">
+    <div class="filter-inline"><span class="result-count" id="userCount"></span></div>
+    <div id="userList"></div>
+  </div>
+
+  <!-- 数据统计 -->
+  <div id="tab-stats" class="tab-panel">
+    <div id="statsPanel"></div>
+  </div>
+</div>
+
+<script type="module" src="/admin.js"></script>
+</body>
+</html>
