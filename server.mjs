@@ -37,6 +37,7 @@ const ROLES = [
 const PROJECT_TYPES = [
   { value: 'supply', label: '成果供给' },
   { value: 'demand', label: '技术需求' },
+  { value: 'service', label: '服务案例' },
 ];
 const ROLE_VALUES = ROLES.map(r => r.value);
 const PROJECT_TYPE_VALUES = PROJECT_TYPES.map(r => r.value);

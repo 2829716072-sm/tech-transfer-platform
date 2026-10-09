@@ -2,7 +2,7 @@
 // 各页面：<script type="module" src="/common.js"></script> 后 import 调用
 
 export const ROLE_LABELS = { researcher: '科研人员', enterprise: '企业方', investor: '投资人' };
-export const TYPE_LABELS = { supply: '成果供给', demand: '技术需求' };
+export const TYPE_LABELS = { supply: '成果供给', demand: '技术需求', service: '服务案例' };
 export const STATUS_LABELS = { pending: '待审核', published: '已发布', rejected: '已驳回' };
 
 export function roleLabel(r) { return ROLE_LABELS[r] || r || ''; }
