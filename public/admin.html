@@ -31,6 +31,7 @@
 
   <div class="tabs">
     <button class="tab active" data-tab="review">审核队列 <span class="tab-count" id="pendingCount"></span></button>
+    <button class="tab" data-tab="intents">合作意向 <span class="tab-count" id="intentCount"></span></button>
     <button class="tab" data-tab="users">用户管理</button>
     <button class="tab" data-tab="stats">数据统计</button>
     <span class="tab-spacer"></span>
@@ -54,6 +55,11 @@
   </div>
 
   <!-- 用户管理 -->
+  <div id="tab-intents" class="tab-panel">
+    <div class="result-head"><span id="intentTotal" class="result-count"></span></div>
+    <div id="intentList"></div>
+  </div>
+
   <div id="tab-users" class="tab-panel">
     <div class="filter-inline"><span class="result-count" id="userCount"></span></div>
     <div id="userList"></div>

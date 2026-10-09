@@ -29,7 +29,7 @@ async function loadDetail() {
 }
 
 function render(p, meta) {
-  const hasContact = p.contactName != null;
+  const hasContact = !!(p.contactName || p.contactPhone || p.contactEmail);
   const field = escapeHtml(p.techField) || '未分类';
   const mat = escapeHtml(p.maturity) || '';
   const rows = [
@@ -55,7 +55,12 @@ function render(p, meta) {
         <div class="info-row"><span class="info-k">技术经理人</span><span class="info-v">${escapeHtml(p.managerName || '—')}</span></div>
       </div>
       <a class="btn-primary btn-block" href="mailto:${encodeURIComponent(p.contactEmail || '')}">联系对方</a>
-    ` : `
+    ` : !hasContact ? `
+      <div class="contact-lock-body">
+        <div class="lock-icon">📋</div>
+        <p>联系方式待补充</p>
+        <p class="lock-sub">可通过下方「合作意向」与对方建立联系</p>
+      </div>` : `
       <div class="contact-lock-body">
         <div class="lock-icon">🔒</div>
         <p>登录后查看联系方式</p>

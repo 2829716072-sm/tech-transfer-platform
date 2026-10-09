@@ -750,6 +750,15 @@ const server = createServer(async (req, res) => {
     }
   }
 
+  // ---------- 管理员：全部合作意向 ----------
+  if (path === '/api/admin/intents' && method === 'GET') {
+    const ap = getAuthPayload(req);
+    if (!ap || ap.type !== 'admin') return json(res, 403, { ok: false, error: '需要管理员权限' });
+    const intents = await readIntents();
+    const list = intents.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return json(res, 200, { ok: true, list, total: list.length });
+  }
+
   if (path === '/api/admin/users' && method === 'GET') {
     if (!requireAdmin(req, res)) return;
     const users = await readUsers();

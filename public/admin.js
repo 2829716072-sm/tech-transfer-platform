@@ -54,6 +54,7 @@ document.querySelectorAll('.tab').forEach(t => {
     const name = t.dataset.tab;
     document.getElementById('tab-' + name).classList.add('active');
     if (name === 'review') loadReview();
+    if (name === 'intents') loadIntents();
     if (name === 'users') loadUsers();
     if (name === 'stats') loadStats();
   });
@@ -135,6 +136,41 @@ document.getElementById('reviewList').addEventListener('click', async (e) => {
 });
 
 document.getElementById('reviewFilter').addEventListener('change', loadReview);
+
+// ===== 合作意向 =====
+async function loadIntents() {
+  const listEl = document.getElementById('intentList');
+  const totalEl = document.getElementById('intentTotal');
+  const countEl = document.getElementById('intentCount');
+  listEl.innerHTML = '<div class="empty-state">加载中…</div>';
+  try {
+    const res = await fetch('/api/admin/intents', { headers: authHeaders() });
+    if (res.status === 401) return logout();
+    const data = await res.json();
+    if (!data.ok) { listEl.innerHTML = `<div class="empty-state">${escapeHtml(data.error || '加载失败')}</div>`; return; }
+    totalEl.textContent = `共 ${data.total} 条意向`;
+    countEl.textContent = data.total ? `(${data.total})` : '';
+    if (!data.list.length) { listEl.innerHTML = '<div class="empty-state"><p>暂无合作意向</p></div>'; return; }
+    const fmt = (s) => s ? String(s).slice(0, 16).replace('T', ' ') : '';
+    const roleLabel = (v) => ({ researcher: '科研人员', enterprise: '企业方', investor: '投资人' }[v] || v || '');
+    listEl.innerHTML = data.list.map(i => `
+      <div class="intent-item card">
+        <div class="intent-head">
+          <div>
+            <div class="intent-who">
+              <span class="badge-role">${escapeHtml(roleLabel(i.userRole))}</span>
+              <strong>${escapeHtml(i.userName)}</strong>
+              <span class="intent-phone">📱 ${escapeHtml(i.userPhone)}</span>
+            </div>
+            <div class="intent-project">意向项目：<a href="/project.html?id=${encodeURIComponent(i.projectId)}">${escapeHtml(i.projectName)}</a></div>
+          </div>
+          <span class="meta-review">${fmt(i.createdAt)}</span>
+        </div>
+        <div class="intent-msg">${escapeHtml(i.message)}</div>
+        ${i.contact ? `<div class="intent-contact">补充联系方式：${escapeHtml(i.contact)}</div>` : ''}
+      </div>`).join('');
+  } catch { listEl.innerHTML = '<div class="empty-state">网络异常</div>'; }
+}
 
 // ===== 用户管理 =====
 async function loadUsers() {
