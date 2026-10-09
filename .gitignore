@@ -3,5 +3,6 @@ data/users.json
 data/intents.json
 data/favorites.json
 data/notifications.json
+data/submissions.json
 *.log
 .DS_Store
