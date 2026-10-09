@@ -102,12 +102,24 @@ export async function mountNav(mountId = 'nav') {
     ` <a class="nav-link" href="${l.href}">${l.label}</a>`).join('');
   const right = u
     ? `<span class="nav-user">
+         <a class="nav-bell" href="/notifications.html" title="消息通知">🔔<span class="bell-badge" id="bellBadge" style="display:none"></span></a>
          <span class="badge-role ${roleClass(u.role)}">${roleLabel(u.role)}</span>
          <span class="nav-name">${escapeHtml(u.name)}</span>
          <a class="nav-link dim" href="/my.html">我的项目</a>
          <button class="btn-ghost btn-sm" id="navLogout">退出</button>
        </span>`
     : `<a class="btn-ghost btn-sm" href="/auth.html">登录 / 注册</a>`;
+  // 未读消息数
+  if (u) {
+    try {
+      const res = await fetch('/api/notifications/unread-count', { headers: { Authorization: 'Bearer ' + getToken() } });
+      const d = await res.json();
+      if (d.ok && d.count > 0) {
+        const badge = document.getElementById('bellBadge');
+        if (badge) { badge.textContent = d.count > 99 ? '99+' : d.count; badge.style.display = ''; }
+      }
+    } catch {}
+  }
   el.innerHTML = `
     <div class="navbar">
       <a class="brand" href="/">

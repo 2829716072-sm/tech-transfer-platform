@@ -14,6 +14,9 @@ const publicDir = join(root, 'public');
 const dataDir = process.env.DATA_DIR || join(root, 'data');
 const usersFile = join(dataDir, 'users.json');
 const projectsFile = join(dataDir, 'projects.json');
+const intentsFile = join(dataDir, 'intents.json');        // 合作意向
+const favoritesFile = join(dataDir, 'favorites.json');    // 收藏
+const notificationsFile = join(dataDir, 'notifications.json'); // 站内消息
 const submissionsFile = join(dataDir, 'submissions.json'); // 旧文件，仅作迁移源/备份
 
 // ====== 配置 ======
@@ -80,6 +83,12 @@ const readProjects = () => readJson(projectsFile, []);
 const saveProjects = (list) => writeJson(projectsFile, list);
 const readUsers = () => readJson(usersFile, []);
 const saveUsers = (list) => writeJson(usersFile, list);
+const readIntents = () => readJson(intentsFile, []);
+const saveIntents = (list) => writeJson(intentsFile, list);
+const readFavorites = () => readJson(favoritesFile, []);
+const saveFavorites = (list) => writeJson(favoritesFile, list);
+const readNotifications = () => readJson(notificationsFile, []);
+const saveNotifications = (list) => writeJson(notificationsFile, list);
 
 // 旧 submissions.json → projects.json 一次性迁移
 async function migrateSubmissions() {
@@ -249,6 +258,21 @@ function publicUser(u) {
   const { salt, hash, ...rest } = u;
   return rest;
 }
+function roleLabelOf(v) {
+  return ROLES.find(r => r.value === v)?.label || v || '';
+}
+// 站内消息写入
+async function notify(userId, type, title, body, link) {
+  if (!userId) return;
+  const list = await readNotifications();
+  list.push({
+    id: genId('n'), userId, type, title,
+    body: String(body || '').slice(0, 500),
+    link: link || '', read: false,
+    createdAt: new Date().toISOString(),
+  });
+  await saveNotifications(list);
+}
 // CSV 转义
 function csvCell(s) {
   if (s == null) s = '';
@@ -409,7 +433,19 @@ const server = createServer(async (req, res) => {
       return json(res, 404, { ok: false, error: '项目不存在' });
     }
     const withContact = !!(payload && payload.type === 'user');
-    return json(res, 200, { ok: true, project: publicProject(p, { withContact }), loggedIn: !!withContact });
+    // 附加状态：是否本人项目 / 是否已收藏 / 是否已提交过意向
+    let favorited = false, myIntent = null;
+    if (withContact) {
+      const favs = await readFavorites();
+      favorited = favs.some(f => f.userId === payload.userId && f.projectId === p.id);
+      const intents = await readIntents();
+      const mine = intents.find(i => i.projectId === p.id && i.userId === payload.userId);
+      if (mine) myIntent = { message: mine.message, contact: mine.contact, createdAt: mine.createdAt };
+    }
+    return json(res, 200, {
+      ok: true, project: publicProject(p, { withContact }),
+      loggedIn: !!withContact, isOwner: !!isOwner, favorited, myIntent,
+    });
   }
 
   // ---------- 项目：提交（需登录） ----------
@@ -481,6 +517,184 @@ const server = createServer(async (req, res) => {
     }
   }
 
+  // ---------- 编辑自己的项目（仅本人；编辑后重新进入审核） ----------
+  if (path.startsWith('/api/my/projects/') && method === 'PUT') {
+    const p = requireUser(req, res);
+    if (!p) return;
+    try {
+      const id = decodeURIComponent(path.slice('/api/my/projects/'.length));
+      const body = JSON.parse(await readBody(req) || '{}');
+      const list = await readProjects();
+      const it = list.find(x => x.id === id);
+      if (!it) return json(res, 404, { ok: false, error: '项目不存在' });
+      if (it.submittedBy !== p.userId) return json(res, 403, { ok: false, error: '无权操作' });
+
+      const rec = {};
+      for (const f of PROJECT_INPUT_FIELDS) rec[f] = String(body[f] ?? '').trim().slice(0, 8000);
+      const required = ['projectName', 'companyName', 'managerName', 'contactName', 'techField', 'maturity', 'projectType'];
+      for (const f of required) {
+        if (!rec[f]) return json(res, 400, { ok: false, error: `请填写${PROJECT_FIELD_LABELS[f]}` });
+      }
+      if (!PROJECT_TYPE_VALUES.includes(rec.projectType)) return json(res, 400, { ok: false, error: '类型无效' });
+      if (!TECH_FIELDS.includes(rec.techField)) return json(res, 400, { ok: false, error: '技术领域无效' });
+      if (!MATURITY_LEVELS.includes(rec.maturity)) return json(res, 400, { ok: false, error: '成熟度无效' });
+      if (rec.contactEmail && !isEmail(rec.contactEmail)) return json(res, 400, { ok: false, error: '联系邮箱格式不正确' });
+
+      Object.assign(it, rec);
+      // 任何编辑后都需重新审核
+      it.status = 'pending';
+      it.reviewer = null;
+      it.reviewedAt = null;
+      it.updatedAt = new Date().toISOString();
+      await saveProjects(list);
+      return json(res, 200, { ok: true });
+    } catch (e) {
+      return json(res, 400, { ok: false, error: e.message });
+    }
+  }
+
+  // ---------- 合作意向：提交（需登录，同项目重复提交则更新） ----------
+  if (path.startsWith('/api/projects/') && path.endsWith('/intents') && method === 'POST') {
+    const p = requireUser(req, res);
+    if (!p) return;
+    try {
+      const pid = decodeURIComponent(path.slice('/api/projects/'.length, -'/intents'.length));
+      const body = JSON.parse(await readBody(req) || '{}');
+      const message = String(body.message || '').trim().slice(0, 2000);
+      const contact = String(body.contact || '').trim().slice(0, 200);
+      if (!message) return json(res, 400, { ok: false, error: '请填写合作意向说明' });
+
+      const projects = await readProjects();
+      const proj = projects.find(x => x.id === pid);
+      if (!proj || proj.status !== 'published') return json(res, 404, { ok: false, error: '项目不存在或未发布' });
+      if (proj.submittedBy === p.userId) return json(res, 400, { ok: false, error: '不能对自己发布的项目提交意向' });
+
+      const users = await readUsers();
+      const me = users.find(u => u.id === p.userId);
+      const intents = await readIntents();
+      const exist = intents.find(i => i.projectId === pid && i.userId === p.userId);
+      if (exist) {
+        exist.message = message;
+        exist.contact = contact;
+        exist.updatedAt = new Date().toISOString();
+      } else {
+        intents.push({
+          id: genId('i'), projectId: pid, projectName: proj.projectName,
+          userId: p.userId, userName: me?.name || '', userRole: p.role,
+          userPhone: me?.phone || '', contact, message,
+          createdAt: new Date().toISOString(), updatedAt: null,
+        });
+      }
+      await saveIntents(intents);
+      await notify(
+        proj.submittedBy, 'intent', '收到新的合作意向',
+        `${me?.name || '用户'}（${roleLabelOf(p.role)}）对项目「${proj.projectName}」表达了合作意向`,
+        '/my.html?tab=received'
+      );
+      return json(res, 200, { ok: true, updated: !!exist });
+    } catch (e) {
+      return json(res, 400, { ok: false, error: e.message });
+    }
+  }
+
+  // ---------- 收到的意向（我的项目收到的） ----------
+  if (path === '/api/my/received-intents' && method === 'GET') {
+    const p = requireUser(req, res);
+    if (!p) return;
+    const [projects, intents] = await Promise.all([readProjects(), readIntents()]);
+    const myProjectIds = new Set(projects.filter(x => x.submittedBy === p.userId).map(x => x.id));
+    const received = intents
+      .filter(i => myProjectIds.has(i.projectId))
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return json(res, 200, { ok: true, list: received, total: received.length });
+  }
+
+  // ---------- 我发出的意向 ----------
+  if (path === '/api/my/sent-intents' && method === 'GET') {
+    const p = requireUser(req, res);
+    if (!p) return;
+    const intents = await readIntents();
+    const sent = intents
+      .filter(i => i.userId === p.userId)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return json(res, 200, { ok: true, list: sent, total: sent.length });
+  }
+
+  // ---------- 收藏：切换（需登录） ----------
+  if (path === '/api/favorites' && method === 'POST') {
+    const p = requireUser(req, res);
+    if (!p) return;
+    try {
+      const body = JSON.parse(await readBody(req) || '{}');
+      const pid = String(body.projectId || '');
+      const projects = await readProjects();
+      if (!projects.some(x => x.id === pid)) return json(res, 404, { ok: false, error: '项目不存在' });
+      const favs = await readFavorites();
+      const idx = favs.findIndex(f => f.userId === p.userId && f.projectId === pid);
+      let favorited;
+      if (idx >= 0) { favs.splice(idx, 1); favorited = false; }
+      else { favs.push({ userId: p.userId, projectId: pid, createdAt: new Date().toISOString() }); favorited = true; }
+      await saveFavorites(favs);
+      return json(res, 200, { ok: true, favorited });
+    } catch (e) {
+      return json(res, 400, { ok: false, error: e.message });
+    }
+  }
+
+  // ---------- 收藏：项目 ID 集合 ----------
+  if (path === '/api/favorites/ids' && method === 'GET') {
+    const p = requireUser(req, res);
+    if (!p) return;
+    const favs = await readFavorites();
+    return json(res, 200, { ok: true, ids: favs.filter(f => f.userId === p.userId).map(f => f.projectId) });
+  }
+
+  // ---------- 收藏：列表（仅显示仍公开的项目） ----------
+  if (path === '/api/favorites' && method === 'GET') {
+    const p = requireUser(req, res);
+    if (!p) return;
+    const [favs, projects] = await Promise.all([readFavorites(), readProjects()]);
+    const pubMap = new Map(projects.filter(x => x.status === 'published').map(x => [x.id, x]));
+    const list = favs
+      .filter(f => f.userId === p.userId && pubMap.has(f.projectId))
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .map(f => publicProject(pubMap.get(f.projectId), { withContact: false }));
+    return json(res, 200, { ok: true, list, total: list.length });
+  }
+
+  // ---------- 消息：未读数 ----------
+  if (path === '/api/notifications/unread-count' && method === 'GET') {
+    const p = requireUser(req, res);
+    if (!p) return;
+    const list = await readNotifications();
+    const n = list.filter(x => x.userId === p.userId && !x.read).length;
+    return json(res, 200, { ok: true, count: n });
+  }
+
+  // ---------- 消息：列表 ----------
+  if (path === '/api/notifications' && method === 'GET') {
+    const p = requireUser(req, res);
+    if (!p) return;
+    const list = await readNotifications();
+    const mine = list
+      .filter(x => x.userId === p.userId)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return json(res, 200, { ok: true, list: mine, total: mine.length, unread: mine.filter(x => !x.read).length });
+  }
+
+  // ---------- 消息：全部已读 ----------
+  if (path === '/api/notifications/read-all' && method === 'POST') {
+    const p = requireUser(req, res);
+    if (!p) return;
+    const list = await readNotifications();
+    let changed = false;
+    for (const x of list) {
+      if (x.userId === p.userId && !x.read) { x.read = true; changed = true; }
+    }
+    if (changed) await saveNotifications(list);
+    return json(res, 200, { ok: true });
+  }
+
   // ---------- 管理员登录 ----------
   if (path === '/api/admin/login' && method === 'POST') {
     try {
@@ -520,6 +734,16 @@ const server = createServer(async (req, res) => {
       it.reviewer = 'admin';
       it.reviewedAt = new Date().toISOString();
       await saveProjects(list);
+      if (it.submittedBy) {
+        await notify(
+          it.submittedBy, 'review',
+          status === 'published' ? '项目审核通过' : '项目审核未通过',
+          status === 'published'
+            ? `「${it.projectName}」已通过审核并公开展示`
+            : `「${it.projectName}」未通过审核，可修改后重新提交`,
+          status === 'published' ? `/project.html?id=${it.id}` : `/submit.html?id=${it.id}`
+        );
+      }
       return json(res, 200, { ok: true, status });
     } catch (e) {
       return json(res, 400, { ok: false, error: e.message });

@@ -11,17 +11,39 @@
 
 <div class="wrap">
   <header class="page-head">
-    <span class="badge">我的项目</span>
-    <h1>我提交的成果</h1>
-    <p>查看审核进度与发布状态</p>
+    <span class="badge">个人中心</span>
+    <h1>我的项目与合作</h1>
+    <p>管理成果、查看意向与收藏</p>
   </header>
 
-  <div class="result-head">
-    <span id="myCount" class="result-count"></span>
+  <div class="tabs">
+    <button class="tab active" data-tab="projects">我的项目</button>
+    <button class="tab" data-tab="received">收到的意向 <span class="tab-count" id="receivedCount"></span></button>
+    <button class="tab" data-tab="sent">发出的意向</button>
+    <button class="tab" data-tab="favorites">我的收藏</button>
+    <span class="tab-spacer"></span>
     <a class="btn-primary btn-sm" href="/submit.html">+ 提交新项目</a>
   </div>
 
-  <div id="myList"></div>
+  <div id="tab-projects" class="tab-panel active">
+    <div class="result-head"><span id="myCount" class="result-count"></span></div>
+    <div id="myList"></div>
+  </div>
+
+  <div id="tab-received" class="tab-panel">
+    <div class="result-head"><span id="receivedTotal" class="result-count"></span></div>
+    <div id="receivedList"></div>
+  </div>
+
+  <div id="tab-sent" class="tab-panel">
+    <div class="result-head"><span id="sentTotal" class="result-count"></span></div>
+    <div id="sentList"></div>
+  </div>
+
+  <div id="tab-favorites" class="tab-panel">
+    <div class="result-head"><span id="favTotal" class="result-count"></span></div>
+    <div class="project-grid" id="favList"></div>
+  </div>
 </div>
 
 <div id="footer"></div>
