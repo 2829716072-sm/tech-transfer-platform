@@ -1,4 +1,7 @@
 node_modules/
-data/*.json
+data/users.json
+data/intents.json
+data/favorites.json
+data/notifications.json
 *.log
 .DS_Store
